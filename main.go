@@ -13,7 +13,7 @@ import (
 
 	"github.com/zhuanke8/xdd-plus/controllers"
 	"github.com/zhuanke8/xdd-plus/models"
-	"github.com/zhuanke8/xdd-plus/qbot"
+//	"github.com/zhuanke8/xdd-plus/qbot"
 )
 
 var theme = ""
@@ -83,8 +83,8 @@ func main() {
 		time.Sleep(time.Second * 4)
 		(&models.JdCookie{}).Push("小滴滴已启动")
 	}()
-	if models.Config.QQID != 0 || models.Config.QQGroupID != 0 {
-		go qbot.Main()
-	}
+//	if models.Config.QQID != 0 || models.Config.QQGroupID != 0 {
+//		go qbot.Main()
+//	}
 	web.Run()
 }
