@@ -314,7 +314,9 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 												msg := fmt.Sprintf("更新账号，%s", ck.PtPin)
 												if sender.IsQQ() {
 													ck.Update(QQ, ck.QQ)
-												}
+												} else if sender.IsTG() {
+											        ck.Update(Telegram, ck.Telegram)
+										        }
 												sender.Reply(fmt.Sprintf(msg))
 												(&JdCookie{}).Push(msg)
 												logs.Info(msg)
@@ -326,7 +328,9 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 												msg := fmt.Sprintf("添加账号，账号名:%s", ck.PtPin)
 												if sender.IsQQ() {
 													ck.Update(QQ, ck.QQ)
-												}
+												} else if sender.IsTG() {
+											        ck.Update(Telegram, ck.Telegram)
+										        }
 												sender.Reply(fmt.Sprintf(msg))
 												sender.Reply(ck.Query())
 												(&JdCookie{}).Push(msg)
@@ -783,6 +787,8 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 								msg := fmt.Sprintf("更新账号，%s", ck.PtPin)
 								if sender.IsQQ() {
 									ck.Update(QQ, ck.QQ)
+								}else if sender.IsTG() {
+								   ck.Update(Telegram, ck.Telegram)
 								}
 								sender.Reply(fmt.Sprintf(msg))
 								(&JdCookie{}).Push(msg)
@@ -795,7 +801,9 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 								msg := fmt.Sprintf("添加账号，账号名:%s", ck.PtPin)
 								if sender.IsQQ() {
 									ck.Update(QQ, ck.QQ)
-								}
+								}else if sender.IsTG() {
+								   ck.Update(Telegram, ck.Telegram)
+							    }
 								sender.Reply(fmt.Sprintf("很棒，许愿币+1，余额%d,请群里面@Q群管家查看新手任务注意事项，不做完新手任务会黑号，请务必重视！", AddCoin(sender.UserID)))
 								sender.Reply(ck.Query())
 								(&JdCookie{}).Push(msg)
