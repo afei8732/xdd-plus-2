@@ -138,6 +138,7 @@ func (c *Container) write(cks []JdCookie) error {
 						Data []struct {
 							Value     string  `json:"value"`
 							ID        string  `json:"_id"`
+							IntID     int     `json:"id"`
 							Created   int64   `json:"created"`
 							Status    int     `json:"status"`
 							Timestamp string  `json:"timestamp"`
@@ -156,7 +157,11 @@ func (c *Container) write(cks []JdCookie) error {
 						}
 						toDelete := []string{}
 						for _, env := range a.Data {
-							toDelete = append(toDelete, fmt.Sprintf("\"%s\"", env.ID))
+							if env.IntID == 0 {
+								toDelete = append(toDelete, fmt.Sprintf("\"%s\"", env.ID))
+							} else {
+								toDelete = append(toDelete, fmt.Sprintf("\"%d\"", env.IntID))
+							}
 						}
 						if len(toDelete) > 0 {
 							c.request("/api/envs", DELETE, fmt.Sprintf(`[%s]`, strings.Join(toDelete, ",")))
@@ -251,6 +256,7 @@ func (c *Container) read() error {
 				Data []struct {
 					Value     string  `json:"value"`
 					ID        string  `json:"_id"`
+					IntID     int     `json:"id"`
 					Created   int64   `json:"created"`
 					Status    int     `json:"status"`
 					Timestamp string  `json:"timestamp"`
@@ -269,7 +275,11 @@ func (c *Container) read() error {
 			c.Delete = []string{}
 
 			for _, env := range a.Data {
-				c.Delete = append(c.Delete, fmt.Sprintf("\"%s\"", env.ID))
+				if env.IntID == 0 {
+					c.Delete = append(c.Delete, fmt.Sprintf("\"%s\"", env.ID))
+				} else {
+					c.Delete = append(c.Delete, fmt.Sprintf("\"%d\"", env.IntID))
+				}
 				res := regexp.MustCompile(`pt_key=(\S+);pt_pin=([^\s;]+);?`).FindAllStringSubmatch(env.Value, -1)
 				for _, v := range res {
 					CheckIn(v[2], v[1])
