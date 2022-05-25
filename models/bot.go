@@ -172,8 +172,6 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 			//	}
 			//}
 
-
-
 			//挖宝统计
 			//{
 			//	if strings.Contains(msg, "https://bnzf.jd.com/") {
