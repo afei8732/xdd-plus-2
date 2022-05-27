@@ -75,8 +75,11 @@ var replies = map[string]string{}
 var riskcodes = make(map[int]string)
 var riskcodes1 = make(map[string]ViVoData)
 var tytlist = make(map[string]int)
+var pzlist = make(map[string]int)
 var tytno = 0
 var tytnum = 0
+var pz = 0
+var pzno = 0
 
 func InitReplies() {
 	f, err := os.Open(ExecPath + "/conf/reply.php")
@@ -143,34 +146,42 @@ var handleMessage = func(msgs ...interface{}) interface{} {
 				}
 			}
 
-			//{
-			//	if sender.IsAdmin {
-			//		if strings.Contains(msg, "膨胀") {
-			//			rsp := httplib.Post("http://jd.zack.xin/api/jd/ulink.php")
-			//			rsp.Param("url", msg)
-			//			rsp.Param("type", "hy")
-			//			data, err := rsp.Response()
-			//
-			//			if err != nil {
-			//				return "口令转换失败"
-			//			}
-			//			body, _ := ioutil.ReadAll(data.Body)
-			//			if strings.Contains(string(body), "口令转换失败") {
-			//				return "口令转换失败"
-			//			} else {
-			//				if strings.Contains(string(body), "shareType=expandHelp") {
-			//					inviterCode := regexp.MustCompile(`inviteId=(\S+)(&|&amp;)mpin`).FindStringSubmatch(string(body))
-			//					k, flag := startpz(inviterCode[1])
-			//					if flag {
-			//						return fmt.Sprintf("助力完成，一共助力%d账号", k)
-			//					} else {
-			//						return fmt.Sprintf("助力失败，一共助力%d账号", k)
-			//					}
-			//				}
-			//			}
-			//		}
-			//	}
-			//}
+			{
+				if strings.Contains(msg, "膨胀") {
+					rsp := httplib.Post("http://jd.zack.xin/api/jd/ulink.php")
+					rsp.Param("url", msg)
+					rsp.Param("type", "hy")
+					data, err := rsp.Response()
+
+					if err != nil {
+						return "口令转换失败"
+					}
+					body, _ := ioutil.ReadAll(data.Body)
+					if strings.Contains(string(body), "口令转换失败") {
+						return "口令转换失败"
+					} else {
+						if strings.Contains(string(body), "shareType=expandHelp") {
+							inviterCode := regexp.MustCompile(`inviteId=(\S+)(&|&amp;)mpin`).FindStringSubmatch(string(body))
+							no := tytno
+							tytno += 1
+							pzlist[inviterCode[1]] = no
+							if sender.IsAdmin {
+								sender.Reply("开始膨胀，管理员")
+								go runpz(sender, inviterCode[1])
+							} else {
+								if GetCoin(sender.UserID) > 24 {
+									RemCoin(sender.UserID, 25)
+									sender.Reply(fmt.Sprintf("膨胀即将开始，已扣除25个积分,订单编号:%d，剩余%d", no, GetCoin(sender.UserID)))
+									go runpz(sender, inviterCode[1])
+								} else {
+									sender.Reply("积分不足")
+								}
+							}
+
+						}
+					}
+				}
+			}
 
 			//挖宝统计
 			//{
@@ -859,22 +870,36 @@ func runtyt(sender *Sender, code string) {
 		}
 	}
 }
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStr(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func startpz(invited string) (num int, flag bool) {
 	logs.Info("开始膨胀助力")
 	k := 0
-	cks := GetJdCookies()
-	for i := len(cks); i > 0; i-- {
-		time.Sleep(time.Second * time.Duration(3))
-		cookie := "pt_key=" + cks[i-1].PtKey + ";pt_pin=" + cks[i-1].PtPin + ";"
+	cks := []JdCookie{}
+	db.Where(fmt.Sprintf("%s = 'true' and %s = 'true'", Dig, Available)).Order("RAND()").Find(&cks)
+	for _, ck := range cks {
+		time.Sleep(time.Second * time.Duration(1))
+		cookie := "pt_key=" + ck.PtKey + ";pt_pin=" + ck.PtPin + ";"
 		sc := getScKey(cookie)
 		if sc != "" {
-			url := "https://api.m.jd.com/client.action?functionId=tigernian_pk_collectPkExpandScore"
-			body := fmt.Sprintf(`{"ss":"{\"extraData\":{\"log\":\"\",\"sceneid\":\"HYGJZYh5\"},\"secretp\":\"%s\",\"random\":\"%d\"}","inviteId":"%s"}`, sc, rand.Intn(99999999), invited)
+			logs.Info(sc)
+			url := "https://api.m.jd.com/client.action?functionId=promote_pk_collectPkExpandScore"
+			body := fmt.Sprintf(`{"ss":"{\"extraData\":{\"log\":\"\",\"sceneid\":\"RAhomePageh5\"},\"confirmFlag\":\"1\",\"secretp\":\"%s\",\"random\":\"%s\"}","inviteId":"%s"}`, sc, randStr(8), invited)
 			req := httplib.Post(url)
 			random := browser.Random()
-			req.Param("clientVersion", "1.0.0")
-			req.Param("client", "wh5")
-			req.Param("functionId", "tigernian_pk_collectPkExpandScore")
+			req.Param("clientVersion", "-1")
+			req.Param("client", "m")
+			req.Param("functionId", "promote_pk_collectPkExpandScore")
+			req.Param("appid", "signed_wh5")
 			req.Param("body", body)
 			req.Header("User-Agent", random)
 			req.Header("Accept", "application/json, text/plain, */*")
@@ -884,20 +909,35 @@ func startpz(invited string) (num int, flag bool) {
 			req.Header("Origin", "https://wbbny.m.jd.com")
 			req.Header("Cookie", cookie)
 			s, _ := req.String()
-			bizCode, _ := jsonparser.GetInt([]byte(s), "data", "bizCode")
+			logs.Info(s)
+			bizCode, err := jsonparser.GetInt([]byte(s), "data", "bizCode")
+			if err != nil {
+				logs.Info(err)
+				return k, false
+			}
 			bizMsg, _ := jsonparser.GetString([]byte(s), "data", "bizMsg")
 
+			logs.Info(s)
+			logs.Info(bizCode)
 			if bizCode == 0 {
 				k++
 				logs.Info("助力成功")
-
 			} else {
-				logs.Info("助力失败")
 				logs.Info(s)
-				if strings.Contains(bizMsg, "好友人气爆棚") {
+				if strings.Contains(bizMsg, "TA已经获得足够的助力了") {
 					return k, true
+				} else if strings.Contains(bizMsg, "火爆") {
+					ck.Update(Dig, False)
+				} else if strings.Contains(bizMsg, "已结束") {
+					return k, false
+				} else if strings.Contains(bizMsg, "次数") {
+					ck.Update(Dig, False)
+				} else {
+					ck.Update(Dig, bizMsg)
 				}
 			}
+		} else {
+			logs.Info("账号错误")
 		}
 	}
 	return k, false
@@ -905,12 +945,13 @@ func startpz(invited string) (num int, flag bool) {
 }
 
 func getScKey(ck string) (key string) {
-	url := "https://api.m.jd.com/client.action?functionId=tigernian_getHomeData"
+	url := "https://api.m.jd.com/client.action?functionId=promote_getHomeData"
 	req := httplib.Get(url)
 	random := browser.Random()
-	req.Param("clientVersion", "1.0.0")
-	req.Param("client", "wh5")
-	req.Param("functionId", "tigernian_getHomeData")
+	req.Param("clientVersion", "-1")
+	req.Param("client", "m")
+	req.Param("functionId", "promote_getHomeData")
+	req.Param("appid", "signed_wh5")
 	req.Header("User-Agent", random)
 	req.Header("Host", "api.m.jd.com")
 	req.Header("Accept", "application/json, text/plain, */*")
@@ -918,78 +959,34 @@ func getScKey(ck string) (key string) {
 	req.Header("Accept-Language", "zh-cn")
 	req.Header("Accept-Encoding", "gzip, deflate, br")
 	req.Header("Origin", "https://api.m.jd.com")
+	req.Header("Content-Type", "application/x-www-form-urlencoded")
 	req.Header("Cookie", ck)
 	data, _ := req.String()
 	if strings.Contains(data, "secretp") {
 		index := strings.Index(data, "\"secretp\":") + 11
-		i := strings.Index(data, "shareMiniprogramSwitch") - 3
+		i := strings.Index(data, "shareCopywriting") - 3
 		s := data[index:i]
 		return s
 	}
 	return ""
 }
 
-//随机slice数组
-func randShuffle(slice []JdCookie) {
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(slice), func(i, j int) {
-		slice[i], slice[j] = slice[j], slice[i]
-	})
-}
-
-func starttyt(red string) (num int, f bool) {
-	k := 0
-	//cks := GetJdCookies(func(sb *gorm.DB) *gorm.DB {
-	//	return sb.Where(fmt.Sprintf("%s != ? and %s = ? ORDER BY RAND()", Tyt, Available), False, True)
-	//})
-	var cks []JdCookie
-	db.Where(fmt.Sprintf("%s = 'true' and %s = 'true'", Tyt, Available)).Find(&cks)
-	randShuffle(cks)
-	logs.Info(len(cks))
-	if len(cks) < 50 {
-		(&JdCookie{}).Push("推一推账号不足  注意补单")
-		return k, false
-	}
-	for _, ck := range cks {
-		time.Sleep(time.Second * 10)
-		logs.Info(ck.PtPin)
-		cookie := "pt_key=" + ck.PtKey + ";pt_pin=" + ck.PtPin + ";"
-		sprintf := fmt.Sprintf(`https://api.m.jd.com/?functionId=helpCoinDozer&appid=station-soa-h5&client=H5&clientVersion=1.0.0&t=1641900500241&body={"actId":"49f40d2f40b3470e8d6c39aa4866c7ff","channel":"coin_dozer","referer":"-1","frontendInitStatus":"s","packetId":"%s","helperStatus":"0"}&_ste=1`, red)
-		req := httplib.Post(sprintf)
-		random := browser.Random()
-		req.Header("User-Agent", random)
-		req.Header("Host", "api.m.jd.com")
-		req.Header("Accept", "application/json, text/plain, */*")
-		req.Header("Origin", "https://pushgold.jd.com")
-		req.Header("Cookie", cookie)
-		data, _ := req.String()
-		code, _ := jsonparser.GetInt([]byte(data), "code")
-		logs.Info(data)
-		if code == 0 {
-			k++
-			logs.Info(jsonparser.GetString([]byte(data), "data", "amount"))
-		} else {
-			if strings.Contains(data, "完成") {
-				logs.Info("返回完成")
-				return k, true
-			} else if strings.Contains(data, "帮砍机会已用完") {
-				ck.Update(Tyt, False)
-			} else if strings.Contains(data, "火爆") {
-				ck.Update(Tyt, False)
-			} else if strings.Contains(data, "帮砍排队") {
-				return k, false
-			} else if strings.Contains(data, "need") {
-				ck.Update(Tyt, "need verity")
-			} else if strings.Contains(data, "未登录") {
-				CookieOK(&ck)
+func runpz(sender *Sender, code string) {
+	for {
+		time.Sleep(time.Duration(rand.Intn(60)))
+		if pz < 3 {
+			pz++
+			num, f := startpz(code)
+			no := pzlist[code]
+			if f {
+				sender.Reply(fmt.Sprintf("订单编号：%d,膨胀结束共用:%d个账号", no, num))
 			} else {
-				getString, _ := jsonparser.GetString([]byte(data), "msg")
-				ck.Update(Tyt, getString)
-				logs.Info(getString)
+				sender.Reply(fmt.Sprintf("订单编号：%d,膨胀异常，请联系群主，或自行检查", no))
 			}
+			pz--
+			return
 		}
 	}
-	return k, false
 }
 
 func FetchJdCookieValue(key string, cookies string) string {
