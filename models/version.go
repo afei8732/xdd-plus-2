@@ -11,8 +11,8 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-var version = "20220312"
-var describe = "适配青龙2.11"
+var version = "20220601"
+var describe = "增加QQ登录开关，适配 Nark，修复WSKEY转换"
 var AppName = "xdd"
 var pname = regexp.MustCompile(`/([^/\s]+)`).FindStringSubmatch(os.Args[0])[1]
 
@@ -48,14 +48,14 @@ func Update(sender *Sender) error {
 	sender.Reply("小滴滴开始拉取代码")
 	rtn, err := exec.Command("sh", "-c", "cd "+ExecPath+" && git stash && git pull").Output()
 	if err != nil {
-		return errors.New("小滴滴拉取代失败：" + err.Error())
+		return errors.New("小滴滴拉取代码失败：" + err.Error())
 	}
 	t := string(rtn)
 	if !strings.Contains(t, "changed") {
 		if strings.Contains(t, "Already") || strings.Contains(t, "已经是最新") {
 			return errors.New("小滴滴已是最新版啦")
 		} else {
-			return errors.New("小滴滴拉取代失败：" + t)
+			return errors.New("小滴滴拉取代码失败：" + t)
 		}
 	} else {
 		sender.Reply("小滴滴拉取代码成功")

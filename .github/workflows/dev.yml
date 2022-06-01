@@ -1,0 +1,29 @@
+name: 🔄自动同步🔄-dev
+on:
+  schedule:
+    - cron: '1 */3 * * *'
+  workflow_dispatch:
+  watch:
+    types: started
+  repository_dispatch:
+    types: sync-jia_yuan-xdd-plus
+jobs:
+  repo-sync:
+    env:
+      PAT: ${{ secrets.PAT }} 
+      SRC_DEV: ${{ secrets.SRC_DEV }} 
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: 开始🔄自动同步🔄
+        uses: repo-sync/github-sync@v2
+        if: env.PAT
+        with:
+          source_repo: ${{ secrets.SRC_DEV }}
+          source_branch: "main"
+          destination_branch: "dev"
+          github_token: ${{ secrets.PAT }}

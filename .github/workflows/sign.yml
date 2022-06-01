@@ -1,0 +1,29 @@
+name: 🔄自动同步🔄-sign
+on:
+  schedule:
+    - cron: '1 */3 * * *'
+  workflow_dispatch:
+  watch:
+    types: started
+  repository_dispatch:
+    types: sync-lululu-sign
+jobs:
+  repo-sync:
+    env:
+      PAT: ${{ secrets.PAT }} 
+      SRC_SIGN: ${{ secrets.SRC_SIGN }} 
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: 开始🔄自动同步🔄
+        uses: repo-sync/github-sync@v2
+        if: env.PAT
+        with:
+          source_repo: ${{ secrets.SRC_SIGN }}
+          source_branch: "master"
+          destination_branch: "sign"
+          github_token: ${{ secrets.PAT }}

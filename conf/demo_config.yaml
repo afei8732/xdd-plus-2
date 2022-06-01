@@ -31,6 +31,7 @@ user_agent:
 telegram_bot_token:
 telegram_user_id:
 TGURL:  #填写TG代理地址参考https://www.kejiwanjia.com/server/5221.html#3worker
+OpenQQ: false #不使用QQ的才要这行，不掉vip
 qquid:  #接收通知的qq号
 qqgid:  #监听的群
 qqgids:   #监听多个QQ群 格式:12345678&87654321&1827362513

@@ -37,6 +37,7 @@ type Yaml struct {
 	IsHelp              bool   `yaml:"IsHelp"`
 	IsOldV4             bool   `yaml:"IsOldV4"`
 	ApiToken            string `yaml:"ApiToken"`
+	WsToken             string `yaml:"WsToken"`
 	Wskey               bool   `yaml:"Wskey"`
 	TGURL               string `yaml:"TGURL"`
 	SMSAddress          string `yaml:"SMSAddress"`
@@ -46,9 +47,11 @@ type Yaml struct {
 	IFC                 bool   `yaml:"IFC"`
 	Later               int    `yaml:"Later"`
 	Jdcurl              string `yaml:"Jdcurl"`
+	Madurl              string `yaml:"Madurl"`
 	GAMEOPEN            bool   `yaml:"GameOpen"`
 	Note                string `yaml:"Note"`
 	VIP                 bool
+	OpenQQ              bool   `yaml:"OpenQQ"`
 	Node                string
 	Npm                 string
 	Python              string

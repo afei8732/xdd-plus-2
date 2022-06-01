@@ -1,0 +1,29 @@
+name: 🔄自动同步🔄-toulu
+on:
+  schedule:
+    - cron: '4 */3 * * *'
+  workflow_dispatch:
+  watch:
+    types: started
+  repository_dispatch:
+    types: sync-lululu-toulu
+jobs:
+  repo-sync:
+    env:
+      PAT: ${{ secrets.PAT }} 
+      SRC_TOULU: ${{ secrets.SRC_TOULU }}
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: 开始🔄自动同步🔄
+        uses: repo-sync/github-sync@v2
+        if: env.PAT
+        with:
+          source_repo: ${{ secrets.SRC_TOULU }}
+          source_branch: "master"
+          destination_branch: "toulu"
+          github_token: ${{ secrets.PAT }}
